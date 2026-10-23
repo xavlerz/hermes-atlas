@@ -21,6 +21,7 @@ FILES = {
 START = "<!-- hermes-atlas:code-map:start -->"
 END = "<!-- hermes-atlas:code-map:end -->"
 IGNORED = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".tox", ".venv", "venv", "node_modules", "build", "dist", "target"}
+SENSITIVE_NAMES = {".env", "credentials", "credential", "secrets", "secret", "private", "id_rsa", "id_ed25519"}
 
 def root_for(path):
     path = path.resolve()
@@ -30,19 +31,22 @@ def root_for(path):
     return root
 
 def plan(root):
-    return [(name, root / name) for name in FILES if not (root / name).exists()]
+    existing = lambda name: (root / name).exists() or (name.startswith("docs/") and (root / name[5:]).exists()) or (not name.startswith("docs/") and (root / "docs" / name).exists())
+    return [(name, root / name) for name in FILES if not existing(name)]
 
 def map_block(root):
+    result = subprocess.run(["git", "-C", str(root), "ls-files", "--cached", "-z"], capture_output=True, check=True)
     paths = []
-    for directory, dirs, files in os.walk(root, followlinks=False):
-        here = Path(directory)
-        dirs[:] = sorted(d for d in dirs if d not in IGNORED and not (here / d).is_symlink())
-        for name in sorted(files):
-            p = here / name
-            if p.is_symlink(): continue
-            rel = p.relative_to(root).as_posix()
-            if rel == "docs/INDEX.md": continue
-            paths.append(rel)
+    for raw in result.stdout.split(b"\0"):
+        if not raw: continue
+        rel = raw.decode("utf-8", "surrogateescape")
+        parts = Path(rel).parts
+        if rel == "docs/INDEX.md" or any(part in IGNORED or part.lower() in SENSITIVE_NAMES for part in parts): continue
+        basename = parts[-1].lower()
+        if basename in SENSITIVE_NAMES or basename.startswith(".env") or basename.endswith((".pem", ".key", ".p12", ".pfx")): continue
+        path = root / rel
+        if not path.is_file() or path.is_symlink(): continue
+        paths.append(rel)
     paths.sort()
     lines = [START, "## Managed source map", "", *[f"- `{p}`" for p in paths[:250]]]
     if len(paths) > 250: lines.append(f"- … ({len(paths) - 250} additional paths omitted)")
@@ -56,7 +60,8 @@ def update_map(root, dry_run=False):
     try: old = old_bytes.decode("utf-8")
     except UnicodeDecodeError as exc: raise ValueError("docs/INDEX.md is not UTF-8") from exc
     starts, ends = old.count(START), old.count(END)
-    if starts != ends or starts > 1: raise ValueError("malformed or duplicate managed map markers")
+    if starts != ends or starts > 1 or (starts and old.index(START) > old.index(END)):
+        raise ValueError("malformed or duplicate managed map markers")
     block = map_block(root)
     if starts:
         begin, finish = old.index(START), old.index(END) + len(END)

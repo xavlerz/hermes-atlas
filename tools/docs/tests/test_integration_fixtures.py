@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from manage_project_docs import FILES, apply
+from manage_project_docs import FILES, apply, map_block
 from validate_project import REQUIRED, errors_for
 REPO = Path(__file__).resolve().parents[3]
 
@@ -95,6 +95,16 @@ class IntegrationFixtures(unittest.TestCase):
             before = {p: (root/p).read_bytes() for p in FILES}
             apply(root)
             self.assertEqual(before, {p: (root/p).read_bytes() for p in FILES})
+
+    def test_bootstrap_docs_first_does_not_duplicate_core_docs(self):
+        temp, root = self.repo()
+        with temp:
+            (root / "docs").mkdir()
+            for name in REQUIRED:
+                (root / "docs" / name).write_text("# Canonical\n", encoding="utf-8")
+            apply(root)
+            self.assertFalse(any((root / name).exists() for name in REQUIRED))
+            self.assertTrue(all((root / "docs" / name).is_file() for name in REQUIRED))
     def test_existing_content_preserved_and_only_absent_added(self):
         temp, root = self.repo()
         with temp:
@@ -107,6 +117,7 @@ class IntegrationFixtures(unittest.TestCase):
         with temp:
             apply(root)
             (root/"src").mkdir(); (root/"src/new.py").write_text("pass\n")
+            subprocess.run(["git", "-C", str(root), "add", "--", "src/new.py"], check=True)
             apply(root, update=True)
             updated = (root/"docs/INDEX.md").read_text()
             self.assertIn("src/new.py", updated)
@@ -133,4 +144,48 @@ class IntegrationFixtures(unittest.TestCase):
             old = p.read_bytes()
             with self.assertRaises(ValueError): apply(root, update=True)
             self.assertEqual(old, p.read_bytes())
+
+    def test_reversed_markers_fail_without_write(self):
+        temp, root = self.repo()
+        with temp:
+            apply(root)
+            p = root / "docs/INDEX.md"
+            original = b"Before\r\n<!-- hermes-atlas:code-map:end -->\r\nuser text\r\n<!-- hermes-atlas:code-map:start -->\r\nAfter\r\n"
+            p.write_bytes(original)
+            with self.assertRaises(ValueError):
+                apply(root, update=True)
+            self.assertEqual(original, p.read_bytes())
+
+    def test_map_uses_tracked_files_only_and_excludes_sensitive_paths(self):
+        temp, root = self.repo()
+        with temp:
+            tracked = ["tracked file.py", "ordinary.txt", ".env", "secrets/token.txt", "credentials.json", "private/key.pem"]
+            for name in tracked:
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("tracked\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "--"] + tracked, check=True)
+            subprocess.run(["git", "-C", str(root), "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "fixtures"], check=True)
+            (root / "untracked.txt").write_text("untracked\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "rm", "--cached", "-q", "credentials.json", "secrets/token.txt"], check=True)
+            (root / "credentials.json").unlink()
+            (root / "secrets/token.txt").unlink()
+            (root / ".gitignore").write_text("ignored.txt\n", encoding="utf-8")
+            (root / "ignored.txt").write_text("ignored\n", encoding="utf-8")
+            block = map_block(root)
+            self.assertIn("`tracked file.py`", block)
+            self.assertIn("`ordinary.txt`", block)
+            for name in ("ignored.txt", ".env", "secrets/token.txt", "credentials.json", "private/key.pem"):
+                self.assertNotIn(name, block)
+            self.assertNotIn("relation", block.lower())
+
+    def test_deleted_tracked_path_is_not_indexed(self):
+        temp, root = self.repo()
+        with temp:
+            p = root / "deleted.txt"
+            p.write_text("content\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "--", "deleted.txt"], check=True)
+            subprocess.run(["git", "-C", str(root), "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "fixture"], check=True)
+            p.unlink()
+            self.assertNotIn("deleted.txt", map_block(root))
 if __name__ == "__main__": unittest.main()

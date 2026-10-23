@@ -117,6 +117,27 @@ class ValidatorScenarios(unittest.TestCase):
             (root / "docs/optional-docs.schema.json").write_text("{broken", encoding="utf-8")
             self.assertTrue(any("invalid JSON schema" in e for e in errors_for(root)))
 
+    def test_schema_constraints_validate_registry(self):
+        for body in (
+            "version: 2\ndocuments:\n  DESIGN.md: optional\n  DEVELOPMENT.md: optional\n  OPERATIONS.md: optional\n",
+            "version: 1\nextra: true\ndocuments:\n  DESIGN.md: optional\n  DEVELOPMENT.md: optional\n  OPERATIONS.md: optional\n",
+            "version: 1\ndocuments:\n  DESIGN.md: optional\n  DEVELOPMENT.md: invalid\n  OPERATIONS.md: optional\n",
+        ):
+            with self.subTest(body=body), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                self.fixture(root)
+                (root / "docs/optional-docs.yaml").write_text(body, encoding="utf-8")
+                self.assertTrue(errors_for(root))
+
+    def test_markdown_destinations_support_spaces_parentheses_and_angle_brackets(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.fixture(root)
+            (root / "file (one).md").write_text("# A heading\n", encoding="utf-8")
+            (root / "INDEX.md").write_text(
+                "[Space](<file (one).md#a-heading>)\n[Plain](file\\ (one\\).md#a-heading)\n", encoding="utf-8")
+            self.assertEqual([], errors_for(root))
+
 
 if __name__ == "__main__":
     unittest.main()
