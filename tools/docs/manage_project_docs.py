@@ -8,7 +8,8 @@ import tempfile
 import difflib
 
 FILES = {
-    "AGENTS.md": "# Repository guidance\n\nKeep project documentation evidence-based. See docs/INDEX.md for navigation and docs/ARCHITECTURE.md for verified contracts.\n",
+    "AGENTS.md": "# Repository guidance\n\nKeep project documentation evidence-based. See INDEX.md for navigation and ARCHITECTURE.md for verified contracts.\n",
+    "docs/AGENTS.md": "# Repository guidance\n\nKeep project documentation evidence-based. See INDEX.md for navigation and ARCHITECTURE.md for verified contracts.\n",
     "INDEX.md": "# Documentation index\n\nSee [codebase map](docs/INDEX.md), [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), and [project state](docs/PROJECT_STATE.md).\n",
     "ARCHITECTURE.md": "# Architecture\n\nDocument only verified contracts; mark unknowns.\n",
     "ROADMAP.md": "# Roadmap\n\nNo commitments recorded.\n",
@@ -57,8 +58,10 @@ def plan(root):
 
     selected = DOCS_CORE if layout == "docs" else CORE
     changes = [(name, root / name) for name in selected if not (root / name).exists()]
-    if not (root / "AGENTS.md").exists():
-        changes.insert(0, ("AGENTS.md", root / "AGENTS.md"))
+    agents_paths = (root / "AGENTS.md", root / "docs/AGENTS.md")
+    if not any(path.exists() for path in agents_paths):
+        agents_name = "docs/AGENTS.md" if layout == "docs" else "AGENTS.md"
+        changes.insert(0, (agents_name, root / agents_name))
     return changes
 
 def map_block(root):

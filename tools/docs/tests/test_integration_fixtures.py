@@ -93,7 +93,7 @@ class IntegrationFixtures(unittest.TestCase):
             apply(root)
             self.assertEqual([], errors_for(root))
             core = set(REQUIRED)
-            self.assertEqual(core, {p.name for p in (root / "docs").glob("*.md")})
+            self.assertEqual(core, {p.name for p in (root / "docs").glob("*.md") if p.name != "AGENTS.md"})
             self.assertFalse(any((root / name).exists() for name in core))
             before = {p: (root/p).read_bytes() for p in FILES if (root/p).is_file()}
             apply(root)
@@ -116,11 +116,16 @@ class IntegrationFixtures(unittest.TestCase):
             (root / "docs/INDEX.md").write_text("# canonical\n")
             (root / "docs/ARCHITECTURE.md").write_text("# keep\n")
             apply(root)
-            self.assertEqual(set(REQUIRED), {p.name for p in (root / "docs").glob("*.md")})
+            self.assertEqual(set(REQUIRED), {p.name for p in (root / "docs").glob("*.md") if p.name != "AGENTS.md"})
             self.assertEqual("# keep\n", (root / "docs/ARCHITECTURE.md").read_text())
             before = {p: p.read_bytes() for p in (root / "docs").glob("*.md")}
             apply(root)
             self.assertEqual(before, {p: p.read_bytes() for p in before})
+            agents = (root / "docs/AGENTS.md").read_text()
+            self.assertIn("INDEX.md", agents)
+            self.assertIn("ARCHITECTURE.md", agents)
+            self.assertNotIn("docs/INDEX.md", agents)
+            self.assertFalse((root / "AGENTS.md").exists())
 
     def test_legacy_root_completion_preserves_layout_and_reruns(self):
         temp, root = self.repo()
@@ -134,6 +139,23 @@ class IntegrationFixtures(unittest.TestCase):
             before = {name: (root / name).read_bytes() for name in REQUIRED}
             apply(root)
             self.assertEqual(before, {name: (root / name).read_bytes() for name in REQUIRED})
+            agents = (root / "AGENTS.md").read_text()
+            self.assertIn("INDEX.md", agents)
+            self.assertNotIn("docs/INDEX.md", agents)
+
+    def test_existing_agents_in_either_location_is_preserved_without_duplicate(self):
+        for existing in ("AGENTS.md", "docs/AGENTS.md"):
+            temp, root = self.repo()
+            with temp:
+                (root / "docs").mkdir()
+                (root / "docs/INDEX.md").write_text("# map\n")
+                target = root / existing
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(b"# Exact existing guidance\r\n")
+                apply(root)
+                self.assertEqual(b"# Exact existing guidance\r\n", target.read_bytes())
+                other = root / ("AGENTS.md" if existing.startswith("docs/") else "docs/AGENTS.md")
+                self.assertFalse(other.exists())
 
     def test_mixed_and_ambiguous_layouts_fail_unchanged(self):
         for files in (("docs/INDEX.md", "INDEX.md"), ("ARCHITECTURE.md",)):

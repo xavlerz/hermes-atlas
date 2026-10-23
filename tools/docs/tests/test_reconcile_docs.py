@@ -52,6 +52,29 @@ class ReconcileDocsTests(unittest.TestCase):
         self.assertIn("Observed", result.stdout)
         self.assertEqual("KEEP UNTOUCHED\n", (self.root / "docs/ARCHITECTURE.md").read_text())
 
+    def test_recommendations_follow_docs_first_and_legacy_layouts(self):
+        (self.root / "docs/INDEX.md").write_text("# index\n")
+        (self.root / "src/a file.py").write_text("changed\n")
+        out = self.run_tool().stdout
+        self.assertIn("- docs/INDEX.md", out)
+        self.assertIn("## Atlas tooling checks", out)
+        self.assertIn(str(TOOLS / "tests"), out)
+        self.assertNotIn("- python3 -m unittest discover -s tools/docs/tests", out)
+        (self.root / "docs/INDEX.md").unlink()
+        (self.root / "INDEX.md").write_text("# legacy\n")
+        out = self.run_tool().stdout
+        self.assertIn("- INDEX.md", out)
+        self.assertNotIn("- docs/INDEX.md", out)
+
+    def test_verification_does_not_assume_atlas_tools_in_target(self):
+        out = self.run_tool().stdout
+        self.assertIn("## Atlas tooling checks", out)
+        self.assertIn("## Target project checks", out)
+        self.assertIn(f"{TOOLS / 'validate_atlas.py'}", out)
+        self.assertIn(f"{TOOLS / 'validate_project.py'} {self.root}", out)
+        self.assertNotIn("python3 tools/docs/", out)
+        self.assertFalse((self.root / "tools/docs").exists())
+
     def test_not_git_root_fails(self):
         result = subprocess.run([sys.executable, str(SCRIPT), "--root", str(self.root / "missing")], text=True, capture_output=True)
         self.assertNotEqual(0, result.returncode)

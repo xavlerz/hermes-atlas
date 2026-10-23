@@ -3,11 +3,12 @@
 import argparse
 import subprocess
 import sys
+import shlex
 from pathlib import Path
 
 
 # Deliberately broad, transparent routing suggestions; no dependency graph implied.
-DOCS = ("docs/ARCHITECTURE.md", "docs/PROJECT_STATE.md", "docs/ROADMAP.md", "docs/INDEX.md")
+CORE = ("INDEX.md", "ARCHITECTURE.md", "PROJECT_STATE.md", "ROADMAP.md")
 SOURCE_PREFIXES = ("src/", "tools/", "tests/", "skills/")
 
 
@@ -45,6 +46,22 @@ def changed_paths(root, base=None):
     return output
 
 
+def recommended_docs(root, source):
+    docs = root / "docs"
+    if (docs / "INDEX.md").is_file():
+        base = "docs/"
+    elif (root / "INDEX.md").is_file():
+        base = ""
+    elif any((docs / name).exists() for name in CORE):
+        base = "docs/"
+    elif any((root / name).exists() for name in CORE):
+        base = ""
+    else:
+        base = "docs/"
+    names = CORE if source else ("INDEX.md", "PROJECT_STATE.md")
+    return tuple(base + name for name in names)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", required=True, help="explicit Git repository root")
@@ -65,16 +82,19 @@ def main():
         for status, old, new in changes:
             print(f"- {status}: {old}" + (f" -> {new}" if old != new else ""))
         source = any(any(path.startswith(prefix) for prefix in SOURCE_PREFIXES) for _, old, new in changes for path in (old, new))
-        candidates = DOCS if source else ("docs/INDEX.md", "docs/PROJECT_STATE.md")
+        candidates = recommended_docs(root, source)
         print("\n## Inferred documents to inspect (routing only; verify relevance)")
         for doc in candidates:
             print(f"- {doc}")
         print("\n## Proposed human checklist")
         print("- Compare each candidate document with source and tests; update only evidenced claims.")
         print("- Mark claims observed, inferred, or proposed; do not infer dependencies from path matching.")
-    print("\n## Proposed verification commands")
-    print("- python3 -m unittest discover -s tools/docs/tests -v")
-    print("- PYTHONDONTWRITEBYTECODE=1 python3 tools/docs/validate_atlas.py")
+    tools = Path(__file__).resolve().parent
+    print("\n## Atlas tooling checks")
+    print(f"- python3 -m unittest discover -s {shlex.quote(str(tools / 'tests'))} -v")
+    print(f"- PYTHONDONTWRITEBYTECODE=1 python3 {shlex.quote(str(tools / 'validate_atlas.py'))}")
+    print("\n## Target project checks")
+    print(f"- python3 {shlex.quote(str(tools / 'validate_project.py'))} {shlex.quote(str(root))}")
     print("- git diff --check")
     print("\n## Proposed Git review commands")
     print("- git status --short; git diff --; git diff --cached --")
