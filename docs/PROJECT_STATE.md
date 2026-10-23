@@ -7,7 +7,7 @@ This v0.2.0 release-preparation tree contains documentation, schemas/templates, 
 - `tools/docs/manage_project_docs.py`: selects a docs-first or legacy-root layout from existing core documents, refuses ambiguous/mixed layouts, creates only absent core documents and guidance on bootstrap, and updates only the marked map block when explicitly requested. The map enumerates eligible tracked files (with exclusions/limit), not untracked files.
 - Managed-map updates require exactly one correctly ordered marker pair when markers exist; malformed/duplicate markers are rejected. User prose outside the block is preserved.
 - `tools/docs/validate_atlas.py` runs Atlas validation, including layout, core-document links, schemas, optional-document registry, and skill frontmatter contracts. `tools/docs/validate_project.py ROOT` separately checks a target Git root's present core docs and relative links/anchors; it does not enforce Atlas schemas or skills.
-- `tools/docs/reconcile_docs.py --root ROOT` emits an advisory packet from tracked Git differences. It excludes untracked paths, uses broad path-prefix routing suggestions, edits no files, and invokes no LLM. `--base REF` compares `REF..HEAD` plus worktree changes.
+- `tools/docs/reconcile_docs.py --root ROOT` emits an advisory packet from tracked Git differences. It excludes untracked paths, uses broad path-prefix routing suggestions, edits no files, and invokes no LLM. `--base REF` compares the committed range `REF..HEAD`; worktree changes are not included in this mode.
 - `.github/workflows/docs.yml` configures tests and both validators on push and pull request for Python 3.9 and 3.x. This describes configuration only, not successful remote CI or Hermes integration.
 
 ## Validation
