@@ -121,11 +121,9 @@ class IntegrationFixtures(unittest.TestCase):
             before = {p: p.read_bytes() for p in (root / "docs").glob("*.md")}
             apply(root)
             self.assertEqual(before, {p: p.read_bytes() for p in before})
-            agents = (root / "docs/AGENTS.md").read_text()
-            self.assertIn("INDEX.md", agents)
-            self.assertIn("ARCHITECTURE.md", agents)
-            self.assertNotIn("docs/INDEX.md", agents)
-            self.assertFalse((root / "AGENTS.md").exists())
+            self.assertTrue((root / "AGENTS.md").is_file())
+            self.assertEqual("# Repository guidance\n\nKeep project documentation evidence-based. See [docs/INDEX.md](docs/INDEX.md) for navigation and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for verified contracts.\n", (root / "AGENTS.md").read_text())
+            self.assertFalse((root / "docs/AGENTS.md").exists())
 
     def test_legacy_root_completion_preserves_layout_and_reruns(self):
         temp, root = self.repo()
@@ -140,10 +138,11 @@ class IntegrationFixtures(unittest.TestCase):
             apply(root)
             self.assertEqual(before, {name: (root / name).read_bytes() for name in REQUIRED})
             agents = (root / "AGENTS.md").read_text()
-            self.assertIn("INDEX.md", agents)
-            self.assertNotIn("docs/INDEX.md", agents)
+            self.assertIn("[INDEX.md](INDEX.md)", agents)
+            self.assertIn("[ARCHITECTURE.md](ARCHITECTURE.md)", agents)
+            self.assertFalse((root / "docs/AGENTS.md").exists())
 
-    def test_existing_agents_in_either_location_is_preserved_without_duplicate(self):
+    def test_existing_agents_in_either_location_is_preserved_and_root_is_created(self):
         for existing in ("AGENTS.md", "docs/AGENTS.md"):
             temp, root = self.repo()
             with temp:
@@ -154,8 +153,11 @@ class IntegrationFixtures(unittest.TestCase):
                 target.write_bytes(b"# Exact existing guidance\r\n")
                 apply(root)
                 self.assertEqual(b"# Exact existing guidance\r\n", target.read_bytes())
-                other = root / ("AGENTS.md" if existing.startswith("docs/") else "docs/AGENTS.md")
-                self.assertFalse(other.exists())
+                if existing.startswith("docs/"):
+                    self.assertTrue((root / "AGENTS.md").is_file())
+                    self.assertEqual(b"# Exact existing guidance\r\n", target.read_bytes())
+                else:
+                    self.assertFalse((root / "docs/AGENTS.md").exists())
 
     def test_mixed_and_ambiguous_layouts_fail_unchanged(self):
         for files in (("docs/INDEX.md", "INDEX.md"), ("ARCHITECTURE.md",)):
