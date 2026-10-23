@@ -26,7 +26,7 @@ The map includes eligible tracked files, omits untracked files and excluded/sens
 From this repository root: `PYTHONDONTWRITEBYTECODE=1 python3 tools/docs/validate_atlas.py`. This checks Atlas-specific layout, core-document links, schema/registry and skill-frontmatter contracts. It takes no target-root argument and is deliberately separate from generic target-project validation.
 
 ## Opt-in documentation reconciliation
-`PYTHONDONTWRITEBYTECODE=1 python3 tools/docs/reconcile_docs.py --root /absolute/project/root` prints a deterministic advisory packet from tracked Git changes. Untracked paths are excluded. Without `--base`, it reports the worktree/index diff against `HEAD`; `--base REF` compares `REF..HEAD` plus worktree changes. Broad source-prefix routing is only a suggestion, not dependency analysis: verify relevance against source and tests. It never edits documents, stages files, or invokes an LLM.
+`PYTHONDONTWRITEBYTECODE=1 python3 tools/docs/reconcile_docs.py --root /absolute/project/root` prints a deterministic advisory packet from tracked Git changes. Untracked paths are excluded. Without `--base`, it reports the worktree/index diff against `HEAD`; `--base REF` compares only the committed range `REF..HEAD` and excludes staged and unstaged worktree changes. Broad source-prefix routing is only a suggestion, not dependency analysis: verify relevance against source and tests. It never edits documents, stages files, or invokes an LLM.
 
 ## Tests
 `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools/docs/tests -v`

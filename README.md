@@ -2,7 +2,7 @@
 
 Hermes Atlas is a documentation and engineering-memory framework for Hermes Agent projects. This repository contains two optional, manually connected Hermes skill packs, canonical project-document templates, and Python-standard-library tools for validating and maintaining project documentation. It does not contain an application runtime.
 
-> **Version:** v0.2.0 release preparation. This documentation/tooling repository provides optional skill-pack source; no tag or GitHub Release has been created. It is not a published package or verified Hermes integration. Licensed under the [MIT License](LICENSE).
+> **Version:** v0.2.0. This documentation/tooling repository provides optional skill-pack source; whether a tag or GitHub Release exists is not asserted here. It is not a published package or verified Hermes integration. Licensed under the [MIT License](LICENSE).
 
 ## Contents
 
@@ -11,7 +11,7 @@ Hermes Atlas is a documentation and engineering-memory framework for Hermes Agen
 - `tools/docs/` — Atlas and generic-project documentation validators, additive bootstrap/update tooling, opt-in advisory reconciliation, and tests.
 - `docs/` — canonical documentation, templates, schemas, development guidance, and manual Hermes onboarding.
 
-Start with the [canonical index](docs/INDEX.md), [v0.2.0 preparation notes](RELEASE_NOTES.md), [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), and [project state](docs/PROJECT_STATE.md).
+Start with the [canonical index](docs/INDEX.md), [v0.2.0 release notes](RELEASE_NOTES.md), [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), and [project state](docs/PROJECT_STATE.md).
 
 ## Requirements
 
