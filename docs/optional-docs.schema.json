@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/hermes-atlas/optional-docs.schema.json",
+  "title": "Optional documentation registry",
+  "type": "object",
+  "required": ["version", "documents"],
+  "properties": {
+    "version": {"const": 1},
+    "documents": {
+      "type": "object",
+      "propertyNames": {"enum": ["DESIGN.md", "DEVELOPMENT.md", "OPERATIONS.md"]},
+      "additionalProperties": {"enum": ["optional", "required", "present"]}
+    }
+  },
+  "additionalProperties": false
+}

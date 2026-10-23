@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/hermes-atlas/project-docs.schema.json",
+  "title": "Hermes Atlas project documentation contract",
+  "type": "object",
+  "required": ["required_docs", "optional_registry", "skills_root"],
+  "properties": {
+    "required_docs": {"type": "array", "minItems": 4, "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z][A-Z_]+\\.md$"}},
+    "optional_registry": {"type": "string", "minLength": 1},
+    "skills_root": {"type": "string", "minLength": 1},
+    "optional_statuses": {"type": "array", "items": {"enum": ["optional", "required", "present"]}}
+  },
+  "additionalProperties": false
+}

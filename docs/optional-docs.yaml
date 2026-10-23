@@ -1,0 +1,6 @@
+# Optional documents. Status is one of optional, required, or present.
+version: 1
+documents:
+  DESIGN.md: optional
+  DEVELOPMENT.md: optional
+  OPERATIONS.md: optional

@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local virtual environments and test/tool caches
+.venv/
+venv/
+.tox/
+.pytest_cache/
+.mypy_cache/
+
+# Build/package output
+build/
+dist/
+*.egg-info/
