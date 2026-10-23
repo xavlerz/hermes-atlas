@@ -8,7 +8,8 @@ import tempfile
 import difflib
 
 FILES = {
-    "AGENTS.md": "# Repository guidance\n\nKeep project documentation evidence-based. See docs/INDEX.md for navigation and docs/ARCHITECTURE.md for verified contracts.\n",
+    "AGENTS.md": "# Repository guidance\n\nKeep project documentation evidence-based. See [INDEX.md](INDEX.md) for navigation and [ARCHITECTURE.md](ARCHITECTURE.md) for verified contracts.\n",
+    "AGENTS_DOCS.md": "# Repository guidance\n\nKeep project documentation evidence-based. See [docs/INDEX.md](docs/INDEX.md) for navigation and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for verified contracts.\n",
     "INDEX.md": "# Documentation index\n\nSee [codebase map](docs/INDEX.md), [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), and [project state](docs/PROJECT_STATE.md).\n",
     "ARCHITECTURE.md": "# Architecture\n\nDocument only verified contracts; mark unknowns.\n",
     "ROADMAP.md": "# Roadmap\n\nNo commitments recorded.\n",
@@ -21,6 +22,7 @@ FILES = {
 START = "<!-- hermes-atlas:code-map:start -->"
 END = "<!-- hermes-atlas:code-map:end -->"
 IGNORED = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".tox", ".venv", "venv", "node_modules", "build", "dist", "target"}
+SENSITIVE_NAMES = {".env", "credentials", "credential", "secrets", "secret", "private", "id_rsa", "id_ed25519"}
 
 def root_for(path):
     path = path.resolve()
@@ -29,20 +31,52 @@ def root_for(path):
     if root != path: raise ValueError(f"explicit target must be Git root ({root})")
     return root
 
+CORE = ("INDEX.md", "ARCHITECTURE.md", "ROADMAP.md", "PROJECT_STATE.md")
+DOCS_CORE = tuple(f"docs/{name}" for name in CORE)
+
+
 def plan(root):
-    return [(name, root / name) for name in FILES if not (root / name).exists()]
+    root_present = {name for name in CORE if (root / name).exists()}
+    docs_present = {name for name in CORE if (root / "docs" / name).exists()}
+    docs_index = "INDEX.md" in docs_present
+    root_index = "INDEX.md" in root_present
+
+    if docs_index:
+        if root_present:
+            raise ValueError("mixed documentation layouts: docs/INDEX.md conflicts with root core documents; resolve the conflict before bootstrapping")
+        layout = "docs"
+    elif root_index and not docs_present:
+        layout = "root"
+    elif root_present == set(CORE) and not docs_present:
+        layout = "root"
+    elif docs_present == set(CORE) and not root_present:
+        layout = "docs"
+    elif not root_present and not docs_present:
+        layout = "docs"
+    else:
+        raise ValueError("ambiguous partial documentation layout; add a clear INDEX.md layout anchor or resolve existing core documents before bootstrapping")
+
+    selected = DOCS_CORE if layout == "docs" else CORE
+    changes = [(name, root / name) for name in selected if not (root / name).exists()]
+    if not (root / "AGENTS.md").exists():
+        changes.insert(0, ("AGENTS.md", root / "AGENTS.md"))
+        if layout == "docs":
+            changes[0] = ("AGENTS_DOCS.md", root / "AGENTS.md")
+    return changes
 
 def map_block(root):
+    result = subprocess.run(["git", "-C", str(root), "ls-files", "--cached", "-z"], capture_output=True, check=True)
     paths = []
-    for directory, dirs, files in os.walk(root, followlinks=False):
-        here = Path(directory)
-        dirs[:] = sorted(d for d in dirs if d not in IGNORED and not (here / d).is_symlink())
-        for name in sorted(files):
-            p = here / name
-            if p.is_symlink(): continue
-            rel = p.relative_to(root).as_posix()
-            if rel == "docs/INDEX.md": continue
-            paths.append(rel)
+    for raw in result.stdout.split(b"\0"):
+        if not raw: continue
+        rel = raw.decode("utf-8", "surrogateescape")
+        parts = Path(rel).parts
+        if rel == "docs/INDEX.md" or any(part in IGNORED or part.lower() in SENSITIVE_NAMES for part in parts): continue
+        basename = parts[-1].lower()
+        if basename in SENSITIVE_NAMES or basename.startswith(".env") or basename.endswith((".pem", ".key", ".p12", ".pfx")): continue
+        path = root / rel
+        if not path.is_file() or path.is_symlink(): continue
+        paths.append(rel)
     paths.sort()
     lines = [START, "## Managed source map", "", *[f"- `{p}`" for p in paths[:250]]]
     if len(paths) > 250: lines.append(f"- … ({len(paths) - 250} additional paths omitted)")
@@ -56,7 +90,8 @@ def update_map(root, dry_run=False):
     try: old = old_bytes.decode("utf-8")
     except UnicodeDecodeError as exc: raise ValueError("docs/INDEX.md is not UTF-8") from exc
     starts, ends = old.count(START), old.count(END)
-    if starts != ends or starts > 1: raise ValueError("malformed or duplicate managed map markers")
+    if starts != ends or starts > 1 or (starts and old.index(START) > old.index(END)):
+        raise ValueError("malformed or duplicate managed map markers")
     block = map_block(root)
     if starts:
         begin, finish = old.index(START), old.index(END) + len(END)

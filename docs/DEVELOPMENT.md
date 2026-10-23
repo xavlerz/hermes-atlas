@@ -16,5 +16,8 @@ Creates absent core documents, `AGENTS.md`, and `docs/` templates only. Existing
 ## Atlas-only validation
 From this repository: `python3 tools/docs/validate_atlas.py /absolute/path/to/hermes-atlas`. This checks Atlas-specific schema/registry/skill contracts and is deliberately separate.
 
+## Opt-in documentation reconciliation
+`python3 tools/docs/reconcile_docs.py --root /absolute/project/root` prints an advisory review packet from staged and unstaged tracked changes. Untracked paths are excluded. It never edits documents, stages files, or invokes an LLM. Path-to-document routing is only a suggestion; verify relevance against source and tests. `--base REF` compares the committed range `REF..HEAD` (plus nothing beyond HEAD).
+
 ## Tests
 `python3 -m unittest discover -s tools/docs/tests -v`

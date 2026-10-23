@@ -11,12 +11,52 @@ import argparse
 import json
 import re
 import sys
+from urllib.parse import unquote
 from pathlib import Path
 from core_docs import REQUIRED, core_docs_directory
 
 SKILL_NAMES = ("project-navigator", "project-docs-maintainer")
 OPTIONAL_DOCS = ("DESIGN.md", "DEVELOPMENT.md", "OPERATIONS.md")
 REGISTRY_STATES = {"optional", "required", "present"}
+
+
+def schema_errors(value: object, schema: dict, path: str = "$") -> list[str]:
+    errors: list[str] = []
+    expected = schema.get("type")
+    if expected == "object" and not isinstance(value, dict):
+        return [f"{path} must be an object"]
+    if expected == "integer" and (not isinstance(value, int) or isinstance(value, bool)):
+        return [f"{path} must be an integer"]
+    if "const" in schema and value != schema["const"]:
+        errors.append(f"{path} must equal {schema['const']!r}")
+    if isinstance(value, dict):
+        for key in schema.get("required", []):
+            if key not in value:
+                errors.append(f"{path} missing required property {key}")
+        properties = schema.get("properties", {})
+        for key, child in value.items():
+            if key in properties:
+                errors.extend(schema_errors(child, properties[key], f"{path}.{key}"))
+            elif schema.get("additionalProperties") is False:
+                errors.append(f"{path} has additional property {key}")
+            elif isinstance(schema.get("additionalProperties"), dict):
+                errors.extend(schema_errors(child, schema["additionalProperties"], f"{path}.{key}"))
+        names = schema.get("propertyNames", {}).get("enum")
+        if names is not None:
+            errors.extend(f"{path} has invalid property name {key}" for key in value if key not in names)
+    if isinstance(value, (str, int, float, bool)):
+        if "enum" in schema and value not in schema["enum"]:
+            errors.append(f"{path} value {value!r} is not allowed")
+    return errors
+
+
+def markdown_targets(text: str):
+    pattern = re.compile(r"\[[^]]*\]\((<[^>]*>|(?:\\.|[^\s)])*(?:\([^)]*\)(?:\\.|[^\s)])*)?)\)")
+    for match in pattern.finditer(text):
+        target = match.group(1)
+        if target.startswith("<") and target.endswith(">"):
+            target = target[1:-1]
+        yield re.sub(r"\\([()\\ ])", r"\1", target)
 
 
 def heading_slugs(text: str) -> set[str]:
@@ -82,15 +122,16 @@ def errors_for(root: Path) -> list[str]:
         doc = docs_dir / name
         if doc.is_file():
             text = doc.read_text(encoding="utf-8")
-            for target in re.findall(r"\[[^]]*\]\(([^)]+)\)", text):
+            for target in markdown_targets(text):
                 if target.startswith(("http://", "https://", "mailto:")):
                     continue
                 path, sep, anchor = target.partition("#")
+                path, anchor = unquote(path), unquote(anchor)
                 target_doc = (doc.parent / path).resolve() if path else doc
                 if path and not target_doc.is_file():
                     label = (docs_dir.relative_to(root) / name).as_posix() if docs_dir != root else name
                     errors.append(f"broken internal link in {label}: {target}")
-                elif sep and target_doc.is_file() and anchor not in heading_slugs(target_doc.read_text(encoding="utf-8")):
+                elif sep and target_doc.is_file() and anchor and anchor not in heading_slugs(target_doc.read_text(encoding="utf-8")):
                     label = (docs_dir.relative_to(root) / name).as_posix() if docs_dir != root else name
                     errors.append(f"broken internal link anchor in {label}: {target}")
     registry = root / "docs/optional-docs.yaml"
@@ -109,6 +150,13 @@ def errors_for(root: Path) -> list[str]:
             parsed = json.loads(schema.read_text(encoding="utf-8"))
             if not isinstance(parsed, dict):
                 raise ValueError("schema root must be an object")
+            if schema.name == "optional-docs.schema.json":
+                registry_path = root / "docs/optional-docs.yaml"
+                if registry_path.is_file():
+                    registry, registry_errors = parse_optional_registry(registry_path.read_text(encoding="utf-8"))
+                    errors.extend(f"optional-docs.yaml: {error}" for error in registry_errors)
+                    value = {"version": 1, "documents": registry}
+                    errors.extend(f"schema validation {error}" for error in schema_errors(value, parsed))
         except (json.JSONDecodeError, ValueError) as exc:
             errors.append(f"invalid JSON schema {schema.relative_to(root)}: {exc}")
 

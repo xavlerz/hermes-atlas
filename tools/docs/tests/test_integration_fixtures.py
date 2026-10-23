@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from manage_project_docs import FILES, apply
+from manage_project_docs import FILES, apply, map_block
 from validate_project import REQUIRED, errors_for
 REPO = Path(__file__).resolve().parents[3]
 
@@ -92,9 +92,92 @@ class IntegrationFixtures(unittest.TestCase):
         with temp:
             apply(root)
             self.assertEqual([], errors_for(root))
-            before = {p: (root/p).read_bytes() for p in FILES}
+            core = set(REQUIRED)
+            self.assertEqual(core, {p.name for p in (root / "docs").glob("*.md") if p.name != "AGENTS.md"})
+            self.assertFalse(any((root / name).exists() for name in core))
+            before = {p: (root/p).read_bytes() for p in FILES if (root/p).is_file()}
             apply(root)
-            self.assertEqual(before, {p: (root/p).read_bytes() for p in FILES})
+            self.assertEqual(before, {p: (root/p).read_bytes() for p in before})
+
+    def test_bootstrap_docs_first_does_not_duplicate_core_docs(self):
+        temp, root = self.repo()
+        with temp:
+            (root / "docs").mkdir()
+            for name in REQUIRED:
+                (root / "docs" / name).write_text("# Canonical\n", encoding="utf-8")
+            apply(root)
+            self.assertFalse(any((root / name).exists() for name in REQUIRED))
+            self.assertTrue(all((root / "docs" / name).is_file() for name in REQUIRED))
+
+    def test_docs_first_completion_and_rerun(self):
+        temp, root = self.repo()
+        with temp:
+            (root / "docs").mkdir()
+            (root / "docs/INDEX.md").write_text("# canonical\n")
+            (root / "docs/ARCHITECTURE.md").write_text("# keep\n")
+            apply(root)
+            self.assertEqual(set(REQUIRED), {p.name for p in (root / "docs").glob("*.md") if p.name != "AGENTS.md"})
+            self.assertEqual("# keep\n", (root / "docs/ARCHITECTURE.md").read_text())
+            before = {p: p.read_bytes() for p in (root / "docs").glob("*.md")}
+            apply(root)
+            self.assertEqual(before, {p: p.read_bytes() for p in before})
+            self.assertTrue((root / "AGENTS.md").is_file())
+            self.assertEqual("# Repository guidance\n\nKeep project documentation evidence-based. See [docs/INDEX.md](docs/INDEX.md) for navigation and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for verified contracts.\n", (root / "AGENTS.md").read_text())
+            self.assertFalse((root / "docs/AGENTS.md").exists())
+
+    def test_legacy_root_completion_preserves_layout_and_reruns(self):
+        temp, root = self.repo()
+        with temp:
+            for name in REQUIRED:
+                (root / name).write_text("# legacy\n")
+            (root / "ROADMAP.md").unlink()
+            apply(root)
+            self.assertTrue(all((root / name).is_file() for name in REQUIRED))
+            self.assertFalse((root / "docs").exists())
+            before = {name: (root / name).read_bytes() for name in REQUIRED}
+            apply(root)
+            self.assertEqual(before, {name: (root / name).read_bytes() for name in REQUIRED})
+            agents = (root / "AGENTS.md").read_text()
+            self.assertIn("[INDEX.md](INDEX.md)", agents)
+            self.assertIn("[ARCHITECTURE.md](ARCHITECTURE.md)", agents)
+            self.assertFalse((root / "docs/AGENTS.md").exists())
+
+    def test_existing_agents_in_either_location_is_preserved_and_root_is_created(self):
+        for existing in ("AGENTS.md", "docs/AGENTS.md"):
+            temp, root = self.repo()
+            with temp:
+                (root / "docs").mkdir()
+                (root / "docs/INDEX.md").write_text("# map\n")
+                target = root / existing
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(b"# Exact existing guidance\r\n")
+                apply(root)
+                self.assertEqual(b"# Exact existing guidance\r\n", target.read_bytes())
+                if existing.startswith("docs/"):
+                    self.assertTrue((root / "AGENTS.md").is_file())
+                    self.assertEqual(b"# Exact existing guidance\r\n", target.read_bytes())
+                else:
+                    self.assertFalse((root / "docs/AGENTS.md").exists())
+
+    def test_mixed_and_ambiguous_layouts_fail_unchanged(self):
+        for files in (("docs/INDEX.md", "INDEX.md"), ("ARCHITECTURE.md",)):
+            temp, root = self.repo()
+            with temp:
+                for name in files:
+                    path = root / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text("# existing\n")
+                before = {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file() and ".git" not in p.parts}
+                with self.assertRaises(ValueError): apply(root)
+                after = {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file() and ".git" not in p.parts}
+                self.assertEqual(before, after)
+
+    def test_existing_agents_is_preserved(self):
+        temp, root = self.repo()
+        with temp:
+            (root / "AGENTS.md").write_text("# User guidance\nexact bytes\n")
+            apply(root)
+            self.assertEqual("# User guidance\nexact bytes\n", (root / "AGENTS.md").read_text())
     def test_existing_content_preserved_and_only_absent_added(self):
         temp, root = self.repo()
         with temp:
@@ -107,6 +190,7 @@ class IntegrationFixtures(unittest.TestCase):
         with temp:
             apply(root)
             (root/"src").mkdir(); (root/"src/new.py").write_text("pass\n")
+            subprocess.run(["git", "-C", str(root), "add", "--", "src/new.py"], check=True)
             apply(root, update=True)
             updated = (root/"docs/INDEX.md").read_text()
             self.assertIn("src/new.py", updated)
@@ -133,4 +217,48 @@ class IntegrationFixtures(unittest.TestCase):
             old = p.read_bytes()
             with self.assertRaises(ValueError): apply(root, update=True)
             self.assertEqual(old, p.read_bytes())
+
+    def test_reversed_markers_fail_without_write(self):
+        temp, root = self.repo()
+        with temp:
+            apply(root)
+            p = root / "docs/INDEX.md"
+            original = b"Before\r\n<!-- hermes-atlas:code-map:end -->\r\nuser text\r\n<!-- hermes-atlas:code-map:start -->\r\nAfter\r\n"
+            p.write_bytes(original)
+            with self.assertRaises(ValueError):
+                apply(root, update=True)
+            self.assertEqual(original, p.read_bytes())
+
+    def test_map_uses_tracked_files_only_and_excludes_sensitive_paths(self):
+        temp, root = self.repo()
+        with temp:
+            tracked = ["tracked file.py", "ordinary.txt", ".env", "secrets/token.txt", "credentials.json", "private/key.pem"]
+            for name in tracked:
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("tracked\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "--"] + tracked, check=True)
+            subprocess.run(["git", "-C", str(root), "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "fixtures"], check=True)
+            (root / "untracked.txt").write_text("untracked\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "rm", "--cached", "-q", "credentials.json", "secrets/token.txt"], check=True)
+            (root / "credentials.json").unlink()
+            (root / "secrets/token.txt").unlink()
+            (root / ".gitignore").write_text("ignored.txt\n", encoding="utf-8")
+            (root / "ignored.txt").write_text("ignored\n", encoding="utf-8")
+            block = map_block(root)
+            self.assertIn("`tracked file.py`", block)
+            self.assertIn("`ordinary.txt`", block)
+            for name in ("ignored.txt", ".env", "secrets/token.txt", "credentials.json", "private/key.pem"):
+                self.assertNotIn(name, block)
+            self.assertNotIn("relation", block.lower())
+
+    def test_deleted_tracked_path_is_not_indexed(self):
+        temp, root = self.repo()
+        with temp:
+            p = root / "deleted.txt"
+            p.write_text("content\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "--", "deleted.txt"], check=True)
+            subprocess.run(["git", "-C", str(root), "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "fixture"], check=True)
+            p.unlink()
+            self.assertNotIn("deleted.txt", map_block(root))
 if __name__ == "__main__": unittest.main()
