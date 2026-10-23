@@ -95,9 +95,10 @@ def main():
     print(f"- PYTHONDONTWRITEBYTECODE=1 python3 {shlex.quote(str(tools / 'validate_atlas.py'))}")
     print("\n## Target project checks")
     print(f"- python3 {shlex.quote(str(tools / 'validate_project.py'))} {shlex.quote(str(root))}")
-    print("- git diff --check")
+    print(f"- git -C {shlex.quote(str(root))} diff --check")
     print("\n## Proposed Git review commands")
-    print("- git status --short; git diff --; git diff --cached --")
+    quoted_root = shlex.quote(str(root))
+    print(f"- git -C {quoted_root} status --short; git -C {quoted_root} diff --; git -C {quoted_root} diff --cached --")
     return 0
 
 

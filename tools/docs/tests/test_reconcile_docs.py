@@ -1,3 +1,4 @@
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -74,6 +75,22 @@ class ReconcileDocsTests(unittest.TestCase):
         self.assertIn(f"{TOOLS / 'validate_project.py'} {self.root}", out)
         self.assertNotIn("python3 tools/docs/", out)
         self.assertFalse((self.root / "tools/docs").exists())
+
+    def test_target_git_recommendations_are_anchored_and_shell_quoted(self):
+        root_with_spaces = self.root / "target project with spaces"
+        root_with_spaces.mkdir()
+        subprocess.run(["git", "init", "-q", str(root_with_spaces)], check=True)
+        subprocess.run(["git", "-C", str(root_with_spaces), "config", "user.email", "test@example.invalid"], check=True)
+        subprocess.run(["git", "-C", str(root_with_spaces), "config", "user.name", "Test"], check=True)
+        (root_with_spaces / "src").mkdir()
+        (root_with_spaces / "src/file.py").write_text("baseline\\n")
+        subprocess.run(["git", "-C", str(root_with_spaces), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(root_with_spaces), "commit", "-qm", "base"], check=True)
+        self.root = root_with_spaces
+        out = self.run_tool().stdout
+        quoted_root = shlex.quote(str(self.root))
+        self.assertIn(f"- git -C {quoted_root} diff --check", out)
+        self.assertIn(f"- git -C {quoted_root} status --short; git -C {quoted_root} diff --; git -C {quoted_root} diff --cached --", out)
 
     def test_not_git_root_fails(self):
         result = subprocess.run([sys.executable, str(SCRIPT), "--root", str(self.root / "missing")], text=True, capture_output=True)
