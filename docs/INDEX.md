@@ -1,6 +1,6 @@
 # Codebase map and navigation
 
-This map describes the files included in the Hermes Atlas v0.1.0 source snapshot. It is a navigation aid, not evidence of runtime behavior. Refresh the managed source map with `python3 tools/docs/manage_project_docs.py ROOT --update --dry-run`, review the preview, then rerun without `--dry-run`.
+This map describes the tracked files in the Hermes Atlas v0.2.0 tree. It is a navigation aid, not evidence of runtime behavior. Refresh the managed source map with `python3 tools/docs/manage_project_docs.py ROOT --update --dry-run`, review the preview, then rerun without `--dry-run` to apply only the marked block.
 
 ## Entry points
 - `tools/docs/validate_atlas.py` — Atlas-specific layout and contract checks.
@@ -18,6 +18,7 @@ This map describes the files included in the Hermes Atlas v0.1.0 source snapshot
 <!-- hermes-atlas:code-map:start -->
 ## Managed source map
 
+- `.github/workflows/docs.yml`
 - `.gitignore`
 - `LICENSE`
 - `README.md`
@@ -41,7 +42,9 @@ This map describes the files included in the Hermes Atlas v0.1.0 source snapshot
 - `skills/project-navigator/references/navigation-checklist.md`
 - `tools/docs/core_docs.py`
 - `tools/docs/manage_project_docs.py`
+- `tools/docs/reconcile_docs.py`
 - `tools/docs/tests/test_integration_fixtures.py`
+- `tools/docs/tests/test_reconcile_docs.py`
 - `tools/docs/tests/test_validator.py`
 - `tools/docs/validate_atlas.py`
 - `tools/docs/validate_docs.py`
