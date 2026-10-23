@@ -92,9 +92,12 @@ class IntegrationFixtures(unittest.TestCase):
         with temp:
             apply(root)
             self.assertEqual([], errors_for(root))
-            before = {p: (root/p).read_bytes() for p in FILES}
+            core = set(REQUIRED)
+            self.assertEqual(core, {p.name for p in (root / "docs").glob("*.md")})
+            self.assertFalse(any((root / name).exists() for name in core))
+            before = {p: (root/p).read_bytes() for p in FILES if (root/p).is_file()}
             apply(root)
-            self.assertEqual(before, {p: (root/p).read_bytes() for p in FILES})
+            self.assertEqual(before, {p: (root/p).read_bytes() for p in before})
 
     def test_bootstrap_docs_first_does_not_duplicate_core_docs(self):
         temp, root = self.repo()
@@ -105,6 +108,52 @@ class IntegrationFixtures(unittest.TestCase):
             apply(root)
             self.assertFalse(any((root / name).exists() for name in REQUIRED))
             self.assertTrue(all((root / "docs" / name).is_file() for name in REQUIRED))
+
+    def test_docs_first_completion_and_rerun(self):
+        temp, root = self.repo()
+        with temp:
+            (root / "docs").mkdir()
+            (root / "docs/INDEX.md").write_text("# canonical\n")
+            (root / "docs/ARCHITECTURE.md").write_text("# keep\n")
+            apply(root)
+            self.assertEqual(set(REQUIRED), {p.name for p in (root / "docs").glob("*.md")})
+            self.assertEqual("# keep\n", (root / "docs/ARCHITECTURE.md").read_text())
+            before = {p: p.read_bytes() for p in (root / "docs").glob("*.md")}
+            apply(root)
+            self.assertEqual(before, {p: p.read_bytes() for p in before})
+
+    def test_legacy_root_completion_preserves_layout_and_reruns(self):
+        temp, root = self.repo()
+        with temp:
+            for name in REQUIRED:
+                (root / name).write_text("# legacy\n")
+            (root / "ROADMAP.md").unlink()
+            apply(root)
+            self.assertTrue(all((root / name).is_file() for name in REQUIRED))
+            self.assertFalse((root / "docs").exists())
+            before = {name: (root / name).read_bytes() for name in REQUIRED}
+            apply(root)
+            self.assertEqual(before, {name: (root / name).read_bytes() for name in REQUIRED})
+
+    def test_mixed_and_ambiguous_layouts_fail_unchanged(self):
+        for files in (("docs/INDEX.md", "INDEX.md"), ("ARCHITECTURE.md",)):
+            temp, root = self.repo()
+            with temp:
+                for name in files:
+                    path = root / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text("# existing\n")
+                before = {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file() and ".git" not in p.parts}
+                with self.assertRaises(ValueError): apply(root)
+                after = {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file() and ".git" not in p.parts}
+                self.assertEqual(before, after)
+
+    def test_existing_agents_is_preserved(self):
+        temp, root = self.repo()
+        with temp:
+            (root / "AGENTS.md").write_text("# User guidance\nexact bytes\n")
+            apply(root)
+            self.assertEqual("# User guidance\nexact bytes\n", (root / "AGENTS.md").read_text())
     def test_existing_content_preserved_and_only_absent_added(self):
         temp, root = self.repo()
         with temp:

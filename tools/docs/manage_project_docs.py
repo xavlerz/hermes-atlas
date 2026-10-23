@@ -30,9 +30,36 @@ def root_for(path):
     if root != path: raise ValueError(f"explicit target must be Git root ({root})")
     return root
 
+CORE = ("INDEX.md", "ARCHITECTURE.md", "ROADMAP.md", "PROJECT_STATE.md")
+DOCS_CORE = tuple(f"docs/{name}" for name in CORE)
+
+
 def plan(root):
-    existing = lambda name: (root / name).exists() or (name.startswith("docs/") and (root / name[5:]).exists()) or (not name.startswith("docs/") and (root / "docs" / name).exists())
-    return [(name, root / name) for name in FILES if not existing(name)]
+    root_present = {name for name in CORE if (root / name).exists()}
+    docs_present = {name for name in CORE if (root / "docs" / name).exists()}
+    docs_index = "INDEX.md" in docs_present
+    root_index = "INDEX.md" in root_present
+
+    if docs_index:
+        if root_present:
+            raise ValueError("mixed documentation layouts: docs/INDEX.md conflicts with root core documents; resolve the conflict before bootstrapping")
+        layout = "docs"
+    elif root_index and not docs_present:
+        layout = "root"
+    elif root_present == set(CORE) and not docs_present:
+        layout = "root"
+    elif docs_present == set(CORE) and not root_present:
+        layout = "docs"
+    elif not root_present and not docs_present:
+        layout = "docs"
+    else:
+        raise ValueError("ambiguous partial documentation layout; add a clear INDEX.md layout anchor or resolve existing core documents before bootstrapping")
+
+    selected = DOCS_CORE if layout == "docs" else CORE
+    changes = [(name, root / name) for name in selected if not (root / name).exists()]
+    if not (root / "AGENTS.md").exists():
+        changes.insert(0, ("AGENTS.md", root / "AGENTS.md"))
+    return changes
 
 def map_block(root):
     result = subprocess.run(["git", "-C", str(root), "ls-files", "--cached", "-z"], capture_output=True, check=True)
