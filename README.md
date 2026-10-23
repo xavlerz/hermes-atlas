@@ -2,16 +2,16 @@
 
 Hermes Atlas is a documentation and engineering-memory framework for Hermes Agent projects. This repository contains two optional, manually connected Hermes skill packs, canonical project-document templates, and Python-standard-library tools for validating and maintaining project documentation. It does not contain an application runtime.
 
-> **Version:** v0.1.0 snapshot. This repository provides documentation tooling and optional skill-pack source; it is not a published package or a verified Hermes integration. Licensed under the [MIT License](LICENSE).
+> **Version:** v0.2.0 release preparation. This documentation/tooling repository provides optional skill-pack source; no tag or GitHub Release has been created. It is not a published package or verified Hermes integration. Licensed under the [MIT License](LICENSE).
 
 ## Contents
 
 - `skills/project-navigator/` — find repository files and evidence without treating a navigation map as proof of behavior.
 - `skills/project-docs-maintainer/` — maintain project documentation against source evidence.
-- `tools/docs/` — Atlas and generic-project documentation validators, additive bootstrap/update tooling, and tests.
+- `tools/docs/` — Atlas and generic-project documentation validators, additive bootstrap/update tooling, opt-in advisory reconciliation, and tests.
 - `docs/` — canonical documentation, templates, schemas, development guidance, and manual Hermes onboarding.
 
-Start with the [canonical index](docs/INDEX.md), [v0.1.0 release notes](RELEASE_NOTES.md), [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), and [project state](docs/PROJECT_STATE.md).
+Start with the [canonical index](docs/INDEX.md), [v0.2.0 preparation notes](RELEASE_NOTES.md), [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), and [project state](docs/PROJECT_STATE.md).
 
 ## Requirements
 
@@ -35,7 +35,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 tools/docs/validate_atlas.py
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools/docs/tests -v
 ```
 
-The Atlas validator checks this repository's document layout, internal core-document links, schemas, optional-document registry, and the two skill frontmatters. Tests use Python's built-in `unittest` framework and isolated temporary Git fixtures.
+The Atlas validator checks this repository's document layout, internal core-document links, schemas, optional-document registry, and skill frontmatters. The standard-library tests include isolated Git fixtures. These are local source checks; they do not establish remote CI results or Hermes runtime integration.
 
 ## Use the tools on another project
 
@@ -51,13 +51,13 @@ Preview additive documentation bootstrap before applying it:
 python3 tools/docs/manage_project_docs.py /absolute/path/to/project --dry-run
 ```
 
-Refresh only the managed source-map block in a target's `docs/INDEX.md` by reviewing the preview first:
+Preview bootstrap with `--dry-run`; apply only after review. Refresh only the managed source-map block in a target's `docs/INDEX.md` by reviewing the preview first:
 
 ```sh
 python3 tools/docs/manage_project_docs.py /absolute/path/to/project --update --dry-run
 ```
 
-The tools report existing Git changes and preserve user content; they do not stage, commit, delete, or modify Hermes settings. See [development instructions](docs/DEVELOPMENT.md) for tool boundaries and test commands.
+`manage_project_docs.py ROOT --update` applies only the managed block; it does not update documentation automatically otherwise. The opt-in `reconcile_docs.py --root ROOT` prints an advisory review packet, not edits. Tools report existing Git changes and preserve user content; they do not stage, commit, delete, or modify Hermes settings. See [development instructions](docs/DEVELOPMENT.md) for exact behavior.
 
 ## Optional Hermes skills
 
