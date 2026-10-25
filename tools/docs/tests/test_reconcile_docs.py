@@ -44,14 +44,46 @@ class ReconcileDocsTests(unittest.TestCase):
         subprocess.run(["git", "-C", str(self.root), "add", "-A"], check=True)
         (self.root / "src/renamed file.py").write_text("worktree edit\n")
         (self.root / "src/deleted.py").unlink()
+        (self.root / "src/untracked.py").write_text("untracked\n")
         result = self.run_tool()
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("src/renamed file.py", result.stdout)
         self.assertIn("src/a file.py", result.stdout)
         self.assertIn("src/deleted.py", result.stdout)
+        self.assertNotIn("src/untracked.py", result.stdout)
         self.assertIn("proposed", result.stdout)
         self.assertIn("Observed", result.stdout)
         self.assertEqual("KEEP UNTOUCHED\n", (self.root / "docs/ARCHITECTURE.md").read_text())
+
+    def test_base_compares_committed_range_only_and_preserves_worktree(self):
+        base = subprocess.run(
+            ["git", "-C", str(self.root), "rev-parse", "HEAD"],
+            check=True, text=True, capture_output=True,
+        ).stdout.strip()
+        (self.root / "src/committed.py").write_text("committed\n")
+        subprocess.run(["git", "-C", str(self.root), "add", "src/committed.py"], check=True)
+        subprocess.run(["git", "-C", str(self.root), "commit", "-qm", "committed change"], check=True)
+        (self.root / "src/staged.py").write_text("staged\n")
+        subprocess.run(["git", "-C", str(self.root), "add", "src/staged.py"], check=True)
+        (self.root / "src/unstaged.py").write_text("unstaged\n")
+        (self.root / "src/untracked.py").write_text("untracked\n")
+        before = subprocess.run(
+            ["git", "-C", str(self.root), "status", "--porcelain"],
+            check=True, text=True, capture_output=True,
+        ).stdout
+
+        result = self.run_tool("--base", base)
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("src/committed.py", result.stdout)
+        self.assertNotIn("src/staged.py", result.stdout)
+        self.assertNotIn("src/unstaged.py", result.stdout)
+        self.assertNotIn("src/untracked.py", result.stdout)
+        after = subprocess.run(
+            ["git", "-C", str(self.root), "status", "--porcelain"],
+            check=True, text=True, capture_output=True,
+        ).stdout
+        self.assertEqual(before, after)
 
     def test_recommendations_follow_docs_first_and_legacy_layouts(self):
         (self.root / "docs/INDEX.md").write_text("# index\n")

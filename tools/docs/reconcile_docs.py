@@ -65,7 +65,7 @@ def recommended_docs(root, source):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", required=True, help="explicit Git repository root")
-    parser.add_argument("--base", help="optional base ref; compare base..HEAD plus worktree changes")
+    parser.add_argument("--base", help="optional base ref; compare committed changes in base..HEAD (excludes worktree changes)")
     args = parser.parse_args()
     try:
         root = Path(args.root).resolve()
