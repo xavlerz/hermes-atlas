@@ -1,68 +1,79 @@
 # Hermes Atlas
 
-Hermes Atlas is a documentation and engineering-memory framework for Hermes Agent projects. This repository contains two optional, manually connected Hermes skill packs, canonical project-document templates, and Python-standard-library tools for validating and maintaining project documentation. It does not contain an application runtime.
+Hermes Atlas is a Git-first toolkit for navigating project source and maintaining project documentation. It provides two optional Hermes skill packs, documentation templates and validators, safe bootstrap and source-map tooling, and an opt-in Git change review packet. It is not an application runtime, package installer, or hosted knowledge service.
 
-> **Version:** v0.2.0. This documentation/tooling repository provides optional skill-pack source; whether a tag or GitHub Release exists is not asserted here. It is not a published package or verified Hermes integration. Licensed under the [MIT License](LICENSE).
+> **Latest published release: [v0.2.0](https://github.com/xavlerz/hermes-atlas/releases/tag/v0.2.0).** This repository currently tracks that release on `main`. A corrective `v0.2.1` is proposed in ongoing work but is **not released**. See [release notes](RELEASE_NOTES.md). Licensed under the [MIT License](LICENSE).
 
-## Contents
+## What is included
 
-- `skills/project-navigator/` — find repository files and evidence without treating a navigation map as proof of behavior.
-- `skills/project-docs-maintainer/` — maintain project documentation against source evidence.
-- `tools/docs/` — Atlas and generic-project documentation validators, additive bootstrap/update tooling, opt-in advisory reconciliation, and tests.
-- `docs/` — canonical documentation, templates, schemas, development guidance, and manual Hermes onboarding.
+- `skills/project-navigator/` — focused source and symbol lookup, with code claims verified against current files.
+- `skills/project-docs-maintainer/` — evidence-based documentation audits and updates.
+- `tools/docs/` — Atlas-specific and generic-project validators, additive documentation bootstrap, managed source-map refresh, and opt-in reconciliation.
+- `docs/` — canonical documentation, templates, schemas, development instructions, and manual Hermes onboarding.
 
-Start with the [canonical index](docs/INDEX.md), [v0.2.0 release notes](RELEASE_NOTES.md), [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), and [project state](docs/PROJECT_STATE.md).
+Start with the [documentation index](docs/INDEX.md), then consult the [architecture](docs/ARCHITECTURE.md), [project state](docs/PROJECT_STATE.md), and [roadmap](docs/ROADMAP.md) as relevant.
 
 ## Requirements
 
-- Python 3.9 or newer (stdlib only; no third-party Python packages required).
-- Git for the project-root safety check in the generic validator and bootstrap/update tool.
-- Hermes Agent only if you choose to connect and use the optional skill packs; integration is manual and is not verified by the repository test suite.
+- Python 3.9 or newer; tooling uses the standard library and has no third-party Python dependencies.
+- Git for tools that inspect or modify files in a target Git repository.
+- Hermes Agent only if you choose to connect the optional skills. Configuration is manual and is not tested by the automated suite.
 
-## Get the source
+## Get the source and run checks
 
 ```sh
 git clone https://github.com/xavlerz/hermes-atlas.git
 cd hermes-atlas
-```
-
-The canonical repository URL above is intended for this project; availability/publication is not asserted. There is no installer, PyPI package, or automatic Hermes configuration step. The tools run directly from the checkout.
-
-## Validate this repository
-
-```sh
 PYTHONDONTWRITEBYTECODE=1 python3 tools/docs/validate_atlas.py
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools/docs/tests -v
 ```
 
-The Atlas validator checks this repository's document layout, internal core-document links, schemas, optional-document registry, and skill frontmatters. The standard-library tests include isolated Git fixtures. These are local source checks; they do not establish remote CI results or Hermes runtime integration.
+These checks validate this checkout's documentation contracts and Python tooling. They do not establish live Hermes skill discovery or invocation, nor do they report remote CI status. See [development instructions](docs/DEVELOPMENT.md) for the generic validator, bootstrap/update behavior, source-map preview, and reconciliation modes.
 
-## Use the tools on another project
+### Update a source checkout
 
-Run commands from this checkout and pass the target project's explicit absolute Git-root path. The generic validator does not impose Atlas schemas or skills:
+From a clean checkout on `main`, fast-forward to the current main branch:
+
+```sh
+git pull --ff-only origin main
+```
+
+Review or preserve local changes before updating. Hermes Atlas is consumed directly from a source checkout; it has no package installer.
+
+## Use the tools on a project
+
+Run the scripts from this checkout and pass the target project's absolute Git root. The generic validator checks existing core documents and local links without requiring Atlas schemas or skills:
 
 ```sh
 python3 tools/docs/validate_project.py /absolute/path/to/project
 ```
 
-Preview additive documentation bootstrap before applying it:
+Preview additive bootstrap before applying it:
 
 ```sh
 python3 tools/docs/manage_project_docs.py /absolute/path/to/project --dry-run
 ```
 
-Preview bootstrap with `--dry-run`; apply only after review. Refresh only the managed source-map block in a target's `docs/INDEX.md` by reviewing the preview first:
+To preview refreshing only the managed source-map block in an existing `docs/INDEX.md`:
 
 ```sh
 python3 tools/docs/manage_project_docs.py /absolute/path/to/project --update --dry-run
 ```
 
-`manage_project_docs.py ROOT --update` applies only the managed block; it does not update documentation automatically otherwise. The opt-in `reconcile_docs.py --root ROOT` prints an advisory review packet, not edits. Tools report existing Git changes and preserve user content; they do not stage, commit, delete, or modify Hermes settings. See [development instructions](docs/DEVELOPMENT.md) for exact behavior.
+Review previews before applying them. Bootstrap does not overwrite existing documents; map refresh does not alter prose outside its managed markers.
 
-## Optional Hermes skills
+Print an advisory packet for tracked changes in a target project:
 
-The skill directories are not installed or connected automatically. Review [manual onboarding](docs/HERMES_ONBOARDING.md) and the active Hermes documentation before configuring an external skill directory. External skills may be writable by Hermes, and same-named skills can be shadowed by precedence; review permissions and configuration yourself. No Hermes config, installed skills, HomePanel, or runtime is modified by this repository's tools.
+```sh
+python3 tools/docs/reconcile_docs.py --root /absolute/path/to/project
+```
+
+By default, reconciliation compares tracked index/worktree changes with `HEAD`; `--base REF` compares only committed changes in `REF..HEAD`. Untracked files are excluded. The tools do not stage or commit changes, delete files, or modify Hermes settings.
+
+## Connect the optional Hermes skills
+
+The skill packs are source directories, not automatically installed integrations. Follow [manual Hermes onboarding](docs/HERMES_ONBOARDING.md) and verify configuration against the current Hermes documentation. External skill directories may be writable by Hermes, and higher-precedence skills can shadow same-named external skills; review paths and permissions before connecting them. Atlas tools do not modify a Hermes profile, installed skills, or running process.
 
 ## Scope and limitations
 
-Atlas currently provides repository documentation tools and skill-pack source, not an application, a managed knowledge backend, or a published integration. Unit and fixture checks prove source-level behavior only. Live Hermes skill discovery and invocation are unverified by this repository's tests; see the [project state](docs/PROJECT_STATE.md). The v0.1.0 snapshot is an isolated, fresh-history source tree; publication and repository availability remain owner-controlled.
+The project provides documentation tooling and optional skill-pack source; it does not provide an application runtime, managed knowledge backend, or automatic Hermes setup. Automated tests use isolated Git fixtures and prove source-level behavior only. Live Hermes skill selection and invocation remain separate runtime checks. See [project state](docs/PROJECT_STATE.md) for verified scope and current release status.

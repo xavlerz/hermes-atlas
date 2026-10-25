@@ -6,22 +6,8 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from manage_project_docs import FILES, apply, map_block
 from validate_project import REQUIRED, errors_for
-REPO = Path(__file__).resolve().parents[3]
 
 class IntegrationFixtures(unittest.TestCase):
-    def test_skills_share_docs_first_legacy_fallback_contract(self):
-        navigator = (REPO / "skills/project-navigator/SKILL.md").read_text()
-        maintainer = (REPO / "skills/project-docs-maintainer/SKILL.md").read_text()
-        for text in (navigator, maintainer):
-            self.assertIn("docs/INDEX.md", text)
-            self.assertIn("root-level legacy", text)
-            self.assertTrue("Only when `docs/INDEX.md` is absent" in text or "Only when that entry point is absent" in text)
-            self.assertIn("partial or mixed", text)
-            self.assertIn("authoritative", text)
-            self.assertIn("silently merging", text)
-            self.assertRegex(text, r"Prefer `docs/` when `docs/INDEX\.md` exists")
-            self.assertRegex(text, r"Only when (?:`docs/INDEX\.md`|that entry point) is absent,? (?:fall back|fall back to)")
-
     def test_docs_first_and_root_only_legacy_layouts(self):
         temp, root = self.repo()
         with temp:

@@ -30,3 +30,11 @@ From this repository root: `PYTHONDONTWRITEBYTECODE=1 python3 tools/docs/validat
 
 ## Tests
 `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools/docs/tests -v`
+
+## Git and release practices
+
+- Keep `main` as the reviewed stable line; use short-lived branches for changes and open a pull request before integration.
+- Start by checking the active branch and Git status. Preserve unrelated staged, unstaged, and untracked files, including `.hermes/` and local configuration. Stage explicit task-owned paths only; never use reset/clean or force-push to make a checkout look clean.
+- Use clear English Conventional Commit messages. Run the full test suite and relevant validators locally, then require successful GitHub Actions before merging.
+- Use SemVer tags (`vMAJOR.MINOR.PATCH`) and update `RELEASE_NOTES.md` for every release. Treat a version as unreleased until its tag and GitHub Release are published from a tested `main` commit.
+- Reuse the primary checkout and fetch/switch branches instead of creating duplicate clones. Use a separate clone only for a concrete isolation/recovery need, and remove it only after confirming it contains no unique work.
