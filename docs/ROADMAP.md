@@ -2,13 +2,16 @@
 
 ## Status
 
-`v0.2.0` is the latest published release and is the current `main` baseline. A corrective `v0.2.1` is a proposed, unreleased patch candidate; this document does not announce a release or set a release date. The candidate scope is limited to improving skill routing/evidence guidance, correcting reconciliation CLI guidance and regression coverage, and aligning public documentation with the released repository. See [release notes](../RELEASE_NOTES.md) for the candidate change list.
+`v0.2.1` is the latest published release (2026-10-25); tag `v0.2.1` points to the tested integration commit. The current `main` adds only release-state documentation after that commit.
+
+## Delivered
+
+- **v0.2.1 corrective patch** — improved skill routing/evidence guidance, corrected reconciliation CLI guidance and regression coverage, refreshed public use/release instructions. See [release notes](../RELEASE_NOTES.md).
 
 ## Proposed
 
-1. **Prepare the v0.2.1 corrective patch** — proposed; release only after review, validation, and maintainer approval. This candidate does not change the tool's feature scope or claim live Hermes runtime verification.
-2. **Broaden source-to-document routing only with evidence** — the opt-in packet uses transparent path-prefix suggestions, not dependency inference; add mappings only when maintainers can justify and test them.
-3. **Review reconciliation packet quality in normal documentation changes** — proposed human process; the packet is advisory and does not modify documentation.
+1. **Broaden source-to-document routing only with evidence** — the opt-in packet uses transparent path-prefix suggestions, not dependency inference; add mappings only when maintainers can justify and test them.
+2. **Review reconciliation packet quality in normal documentation changes** — proposed human process; the packet is advisory and does not modify documentation.
 
 ## Rules
 

@@ -1,14 +1,14 @@
 # Hermes Atlas release notes
 
-## v0.2.1 — Unreleased candidate
+## v0.2.1 — Published (2026-10-25)
 
-This section tracks proposed corrective changes on the `v0.2.1` development line. It is not a published release; no tag or GitHub Release is created by these notes.
+Published GitHub Release and annotated tag `v0.2.1`, pointing to commit `9c24ca56a7a15516b18e3c9a025aaba6b6b3bc9d`.
 
-- Clarify that `reconcile_docs.py --base REF` compares only committed changes in `REF..HEAD`, and add isolated Git-fixture coverage proving staged, unstaged, and untracked paths are excluded without altering the worktree.
-- Strengthen default reconciliation coverage for tracked staged/unstaged changes and explicit untracked-path exclusion.
-- Refine the two skill descriptions and workflows to separate source lookup from documentation maintenance, verify claims against current source/tests, use indexes as navigation rather than proof, expand context only as needed, and distinguish observed evidence from inference/proposal.
-- Replace a brittle test of specific skill wording with behavioral reconciliation tests; retain the existing structural layout and validator contracts.
-- Align the README, development guide, roadmap, project state, and onboarding guidance with the published `v0.2.0` baseline, the unreleased candidate, and actual runtime-verification limits.
+- Corrected the `reconcile_docs.py --base REF` help and added Git-fixture coverage for committed-range scope, default tracked changes, excluded untracked files, and worktree preservation.
+- Refined the `project-navigator` and `project-docs-maintainer` activation boundaries, evidence checks, and progressive context guidance; replaced a wording-only test with behavior-focused coverage.
+- Improved README quick-start, checkout update instructions and tool examples; documented maintainer Git/release practices and isolated Hermes acceptance scenarios; aligned project state and roadmap.
+- No runtime dependencies added. The complete suite contains 38 tests; all passed, along with both documentation validators and GitHub Actions for Python 3.9 and 3.x.
+- Hermes Agent v0.22.2 in a disposable `HERMES_HOME` discovered both external skills and included them in the prompt skill index. Model-driven selection and invocation were not tested.
 
 ## v0.2.0 — Published
 

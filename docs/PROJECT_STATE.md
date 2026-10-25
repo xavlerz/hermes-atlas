@@ -2,7 +2,7 @@
 
 ## Scope and release status
 
-Hermes Atlas provides project documentation, schemas/templates, optional Hermes skill-pack source, Python standard-library tools, tests, and a documentation CI workflow; it contains no application runtime. The latest published release is `v0.2.0`, represented by tag `v0.2.0` at `63edd3d2a6e1a67da3ac5ca29ace5dd280fa63cc`; that commit is the current public `main` baseline. `v0.2.1` is an unreleased corrective candidate, not a published version. The skills are optional and require manual owner-controlled configuration.
+Hermes Atlas provides project documentation, schemas/templates, optional Hermes skill-pack source, Python standard-library tools, tests, and a documentation CI workflow; it contains no application runtime. The latest published release is `v0.2.1` (published 2026-10-25), via annotated tag `v0.2.1` pointing to `9c24ca56a7a15516b18e3c9a025aaba6b6b3bc9d`. The current `main` contains that tagged release plus a documentation-only update recording its publication. `v0.2.0` remains available as the previous published release. The skills are optional and require manual owner-controlled configuration.
 
 ## Implemented behavior
 
@@ -14,6 +14,8 @@ Hermes Atlas provides project documentation, schemas/templates, optional Hermes 
 
 ## Validation and runtime limits
 
-The published `v0.2.0` baseline was validated locally with 38 unit tests and both documentation validators. Candidate changes require rerunning the complete suite and validators; results are reported with the corresponding check run. Source checks do not establish Hermes skill discovery or invocation. Live runtime behavior must be checked in an isolated, owner-controlled Hermes profile; this repository's automated suite does not perform that integration test.
+The `v0.2.1` release commit passed all 38 unit tests and both documentation validators; GitHub Actions passed on Python 3.9 and 3.x for the merge and tag. See [the v0.2.1 release](https://github.com/xavlerz/hermes-atlas/releases/tag/v0.2.1). Reconciliation and source-map generation/update are covered by isolated temporary Git fixtures.
 
-No application runtime, deployment, or hosted service is verified. Hermes configuration, skill permissions, release publication, and remote CI results remain separate from local source-level checks.
+Hermes Agent v0.22.2 was run against a disposable `HERMES_HOME`: it detected both external skills and included them in the generated prompt skill index. No model request was made, so automatic skill selection and invocation remain unverified. Do not infer them from static validation or discovery alone.
+
+No application runtime, deployment, or hosted service is verified. Hermes profile configuration and skill permissions remain owner-controlled.

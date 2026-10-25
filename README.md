@@ -2,7 +2,7 @@
 
 Hermes Atlas is a Git-first toolkit for navigating project source and maintaining project documentation. It provides two optional Hermes skill packs, documentation templates and validators, safe bootstrap and source-map tooling, and an opt-in Git change review packet. It is not an application runtime, package installer, or hosted knowledge service.
 
-> **Latest published release: [v0.2.0](https://github.com/xavlerz/hermes-atlas/releases/tag/v0.2.0).** This repository currently tracks that release on `main`. A corrective `v0.2.1` is proposed in ongoing work but is **not released**. See [release notes](RELEASE_NOTES.md). Licensed under the [MIT License](LICENSE).
+> **Latest published release: [v0.2.1](https://github.com/xavlerz/hermes-atlas/releases/tag/v0.2.1)** (2026-10-25). Hermes Atlas is distributed as a source checkout, not a package. See [release notes](RELEASE_NOTES.md). Licensed under the [MIT License](LICENSE).
 
 ## What is included
 
