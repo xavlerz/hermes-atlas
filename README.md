@@ -30,6 +30,16 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools/docs/tests -v
 
 These checks validate this checkout's documentation contracts and Python tooling. They do not establish live Hermes skill discovery or invocation, nor do they report remote CI status. See [development instructions](docs/DEVELOPMENT.md) for the generic validator, bootstrap/update behavior, source-map preview, and reconciliation modes.
 
+### Update a source checkout
+
+From a clean checkout on `main`, fast-forward to the current main branch:
+
+```sh
+git pull --ff-only origin main
+```
+
+Review or preserve local changes before updating. Hermes Atlas is consumed directly from a source checkout; it has no package installer.
+
 ## Use the tools on a project
 
 Run the scripts from this checkout and pass the target project's absolute Git root. The generic validator checks existing core documents and local links without requiring Atlas schemas or skills:
@@ -50,7 +60,15 @@ To preview refreshing only the managed source-map block in an existing `docs/IND
 python3 tools/docs/manage_project_docs.py /absolute/path/to/project --update --dry-run
 ```
 
-Review previews before applying. Bootstrap does not overwrite existing documents; map refresh does not alter prose outside its managed markers. `reconcile_docs.py --root ROOT` is an advisory packet, not an automatic documentation editor. Its default mode considers tracked index/worktree changes; `--base REF` considers only committed changes in `REF..HEAD`. Untracked files are excluded. The tools do not stage or commit changes, delete files, or modify Hermes settings.
+Review previews before applying them. Bootstrap does not overwrite existing documents; map refresh does not alter prose outside its managed markers.
+
+Print an advisory packet for tracked changes in a target project:
+
+```sh
+python3 tools/docs/reconcile_docs.py --root /absolute/path/to/project
+```
+
+By default, reconciliation compares tracked index/worktree changes with `HEAD`; `--base REF` compares only committed changes in `REF..HEAD`. Untracked files are excluded. The tools do not stage or commit changes, delete files, or modify Hermes settings.
 
 ## Connect the optional Hermes skills
 
