@@ -8,7 +8,7 @@ This section tracks proposed corrective changes on the `v0.2.1` development line
 - Strengthen default reconciliation coverage for tracked staged/unstaged changes and explicit untracked-path exclusion.
 - Refine the two skill descriptions and workflows to separate source lookup from documentation maintenance, verify claims against current source/tests, use indexes as navigation rather than proof, expand context only as needed, and distinguish observed evidence from inference/proposal.
 - Replace a brittle test of specific skill wording with behavioral reconciliation tests; retain the existing structural layout and validator contracts.
-- Align the README, roadmap, project state, and onboarding guidance with the published `v0.2.0` baseline, the unreleased candidate, and actual runtime-verification limits.
+- Align the README, development guide, roadmap, project state, and onboarding guidance with the published `v0.2.0` baseline, the unreleased candidate, and actual runtime-verification limits.
 
 ## v0.2.0 — Published
 
